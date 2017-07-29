@@ -3,6 +3,11 @@ from keras.models import Model
 from keras import metrics
 import numpy as np
 
+"""
+[(0.683, 0.667), (0.41, 0.556), (0.731, 0.778)]
+[(0.669, 0.667), (0.703, 0.667), (0.699, 0.889)]
+"""
+
 class Net(object):
     def __init__(self):
         input_layer = Input((2,))
@@ -13,7 +18,7 @@ class Net(object):
         self.encode_model = Model(inputs=input_layer, outputs=decode_layer)
 
         # Define DNN structure
-        
+        """
         self.network = Dense(units=256, activation='elu')(self.encode_layer)
         self.network = Dropout(0.5)(self.network)
         self.network = Dense(units=128, activation='elu')(self.network)
@@ -21,6 +26,8 @@ class Net(object):
         self.network = Dense(units=64, activation='elu')(self.network)
         self.output = Dense(units=17, activation='sigmoid')(self.network)
         self.dnn_model = Model(inputs=input_layer, outputs=self.output)
+        """
+
         """
         self.network = Dense(units=128, activation='elu')(self.encode_layer)
         self.network = Dropout(0.5)(self.network)
@@ -30,29 +37,36 @@ class Net(object):
         self.network = Dense(units=64, activation='elu')(self.network)
         self.network = Dense(units=64, activation='elu')(self.network)
         self.network = Dense(units=64, activation='elu')(self.network)
-        self.output = Dense(units=17, activation='softmax')(self.network)
+        self.output = Dense(units=17, activation='sigmoid')(self.network)
         self.dnn_model = Model(inputs=input_layer, outputs=self.output)
         """
+
+        
+        self.network = Dense(units=1024, activation='elu')(self.encode_layer)
+        self.network = Dropout(0.5)(self.network)
+        self.output = Dense(units=17, activation='sigmoid')(self.network)
+        self.dnn_model = Model(inputs=input_layer, outputs=self.output)
+        
         
 
-    def fit(self, x, y):
+    def fit(self, x, y, epoch=2000, batch_size=32):
         # Train auto-encoder first
         self.encode_model.compile(
             loss='mse',
             optimizer='adam'
         )
-        self.encode_model.fit(x, x, epochs=2000, batch_size=200)
+        self.encode_model.fit(x, x, epochs=epoch, batch_size=200)
 
         # Train classification model
         for i in range(len(self.encode_model.layers)):
             self.dnn_model.layers[i].trainable = False
         self.dnn_model.compile(
-            loss='categorical_crossentropy',    # categorical_crossentropy
+            loss='mse',    # categorical_crossentropy
             optimizer='adam',
             metrics=['accuracy']
         )
-        #self.dnn_model.fit(x, y, epochs=5000, batch_size=32)
-        self.dnn_model.fit(x, y, epochs=1000, batch_size=256)
+        self.dnn_model.fit(x, y, epochs=epoch, batch_size=batch_size)
+        #self.dnn_model.fit(x, y, epochs=10000, batch_size=256)
 
     def predict(self, x):
         return self.dnn_model.predict(x)

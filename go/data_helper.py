@@ -3,6 +3,7 @@ from sklearn.preprocessing import MinMaxScaler
 import pandas as pd
 import numpy as np
 import random
+import math
 
 # Dictionary object which can help change string of type to numeric index
 type_string_2_int = dict()
@@ -19,36 +20,47 @@ def load(file_name='pokemonGO.csv'):
     # Drop useless feature
     df = pd.read_csv(file_name)
     df = df.drop(['Name', 'Pokemon No.', 'Image URL'], axis=1)
+    
 
+    """
     # Reshape the dataframe to accept multi-type
     df = pd.melt(df, id_vars=['Max CP', 'Max HP'], var_name='type')
     df = df.dropna()
     df = df.reset_index()
     df = df.drop(['index', 'type'], axis=1)
-    df.columns = ['cp', 'hp', 'type']
+    """
+    df.columns = ['type1', 'type2', 'cp', 'hp']
 
     # Build mapping
     _counter = 0
     for i in range(len(df)):
-        if df['type'][i] not in type_string_2_int:
-            type_string_2_int[df['type'][i]] = _counter
+        if df['type1'][i] not in type_string_2_int:
+            type_string_2_int[df['type1'][i]] = _counter
             _counter += 1
+        if type(df['type2'][i]) == str:
+            if df['type2'][i] not in type_string_2_int:
+                type_string_2_int[df['type2'][i]] = _counter
+                _counter += 1
     type_int_2_string = { type_string_2_int[i]: i for i in type_string_2_int }
+    print(type_int_2_string)
     
     # Change categorical data to numeric index
     for i in range(len(df)):
-        df.set_value(i, 'type', type_string_2_int[df['type'][i]])
+        df.set_value(i, 'type1', type_string_2_int[df['type1'][i]])
+        if type(df['type2'][i]) == str:
+            df.set_value(i, 'type2', type_string_2_int[df['type2'][i]])
+    #x, y = generateData(x, y, 10)
+    df = generateData(df, 10)    
     df = shuffleDataFrame(df)
-
+    
     # Return
-    x = df.get_values().T[:-1].T
-    y = df.get_values().T[-1:].T
-    x, y = generateData(x, y, 10)
-
+    y = df.get_values().T[:-2].T
+    x = df.get_values().T[-2:].T
     x = scaler.fit_transform(x)
-    return train_test_split(x, np.reshape(y, [-1]), test_size=0.005)
+    return train_test_split(x, y, test_size=0.005)
 
 def generateData(x, y, times=1):
+    """
     x = x.tolist()
     y = y.tolist()
     result_x = list(x)
@@ -67,6 +79,31 @@ def generateData(x, y, times=1):
     print(np.shape(x), np.shape(result_x))
     print(np.shape(y), np.shape(result_y))
     return result_x, result_y
+    """
+    pass
+
+def generateData(df, times=1):
+    """
+    _new = pd.DataFrame([[12, float('NaN'), 1, 1]], columns=df.columns)
+    df = df.append(_new)
+    
+
+    """
+    origin_len = len(df)
+    columns_list = df.columns
+    print(origin_len)
+    print(df['type1'][150])
+    for i in range(times):
+        for j in range(origin_len):
+            random_seed = 1 + (random.random() - 1) / 10
+            _new_row = []
+            _new_row.append(df['type1'][j])
+            _new_row.append(df['type2'][j])
+            _new_row.append(df['cp'][j] * random_seed)
+            _new_row.append(df['hp'][j] * random_seed)
+            df = df.append(pd.DataFrame([_new_row], columns=columns_list))
+        df = df.reset_index().drop(['index'], axis=1)
+    return df
 
 def shuffleDataFrame(data_frame):
     """
@@ -82,13 +119,21 @@ def shuffleDataFrame(data_frame):
         result_table = result_table.append(sample_row)
     return result_table
 
-def errorSum(arr1, arr2):
-    arr1 = np.asarray(list(arr1))
-    arr2 = np.asarray(list(arr2))
-    return np.sum(np.equal(arr1, arr2, dtype=int)) / len(arr1)
+def errorSum(tag_arr, predict_arr):
+    _count = 0
+    for i in range(len(tag_arr)):
+        if predict_arr[i] == tag_arr[i][0] or \
+            predict_arr[i] == tag_arr[i][1]:
+            _count += 1
+    return _count / len(tag_arr)
 
 def oneHotEncode(arr):
-    return pd.get_dummies(np.reshape(arr, [-1])).values
+    res = np.zeros([len(arr), np.nanmax(arr) + 1])
+    for i in range(len(res)):
+        res[i][arr[i][0]] = 1
+        if math.isnan(arr[i][1]) == False:
+            res[i][arr[i][1]] = 1
+    return res
 
 def oneHotDecode(arr):
     return np.argmax(arr, axis=1)
