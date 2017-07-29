@@ -9,7 +9,10 @@ train_x, test_x, train_y, test_y = data_helper.load()
 clf = RandomForestClassifier(verbose=0)
 clf.fit(train_x, list(train_y))
 """
+
+
 clf = Net()
+print(train_x)
 print(data_helper.oneHotEncode(train_y))
 clf.fit(train_x, data_helper.oneHotEncode(train_y))
 print(train_y)

@@ -2,6 +2,7 @@ from sklearn.cross_validation import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 import pandas as pd
 import numpy as np
+import random
 
 # Dictionary object which can help change string of type to numeric index
 type_string_2_int = dict()
@@ -27,7 +28,7 @@ def load(file_name='pokemonGO.csv'):
     df.columns = ['cp', 'hp', 'type']
 
     # Build mapping
-    _counter = 1
+    _counter = 0
     for i in range(len(df)):
         if df['type'][i] not in type_string_2_int:
             type_string_2_int[df['type'][i]] = _counter
@@ -41,9 +42,31 @@ def load(file_name='pokemonGO.csv'):
 
     # Return
     x = df.get_values().T[:-1].T
-    x = scaler.fit_transform(x)
     y = df.get_values().T[-1:].T
-    return train_test_split(x, np.reshape(y, [-1]), test_size=0.04)
+    x, y = generateData(x, y, 10)
+
+    x = scaler.fit_transform(x)
+    return train_test_split(x, np.reshape(y, [-1]), test_size=0.005)
+
+def generateData(x, y, times=1):
+    x = x.tolist()
+    y = y.tolist()
+    result_x = list(x)
+    result_y = list(y)
+    if len(result_x) != len(result_y) or times<=0:
+        print('generate data error!')
+        exit()
+    for i in range(times):
+        for j in range(len(x)):
+            random_seed = 1 + (random.random() - 1) / 10
+            _list = []
+            for k in range(len(result_x[j])):
+                _list.append(result_x[j][k] * random_seed)
+            result_x.append(_list)
+            result_y.append(y[j])
+    print(np.shape(x), np.shape(result_x))
+    print(np.shape(y), np.shape(result_y))
+    return result_x, result_y
 
 def shuffleDataFrame(data_frame):
     """
