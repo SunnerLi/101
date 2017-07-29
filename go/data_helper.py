@@ -13,6 +13,13 @@ type_int_2_string = dict()
 scaler = MinMaxScaler()
 
 def load(file_name='pokemonGO.csv'):
+    """
+        Load the training data.
+        This function will build the categorical mapping and transfer into numeric representation
+
+        Arg:    file_name   - The name of the pokemon GO file
+        Ret:    The pandas data frame object
+    """
     global type_int_2_string
     global type_string_2_int
     global scaler
@@ -20,16 +27,13 @@ def load(file_name='pokemonGO.csv'):
     # Drop useless feature
     df = pd.read_csv(file_name)
     df = df.drop(['Name', 'Pokemon No.', 'Image URL'], axis=1)
-    
-
-    """
-    # Reshape the dataframe to accept multi-type
-    df = pd.melt(df, id_vars=['Max CP', 'Max HP'], var_name='type')
-    df = df.dropna()
-    df = df.reset_index()
-    df = df.drop(['index', 'type'], axis=1)
-    """
     df.columns = ['type1', 'type2', 'cp', 'hp']
+
+    # Swap column
+    column_list = list(df)
+    column_list[0], column_list[2] = column_list[2], column_list[0]
+    column_list[1], column_list[3] = column_list[3], column_list[1]
+    df = df.ix[:, column_list]
 
     # Build mapping
     _counter = 0
@@ -42,65 +46,66 @@ def load(file_name='pokemonGO.csv'):
                 type_string_2_int[df['type2'][i]] = _counter
                 _counter += 1
     type_int_2_string = { type_string_2_int[i]: i for i in type_string_2_int }
-    print(type_int_2_string)
-    
+
     # Change categorical data to numeric index
     for i in range(len(df)):
         df.set_value(i, 'type1', type_string_2_int[df['type1'][i]])
         if type(df['type2'][i]) == str:
-            df.set_value(i, 'type2', type_string_2_int[df['type2'][i]])
-    #x, y = generateData(x, y, 10)
-    df = generateData(df, 10)    
-    df = shuffleDataFrame(df)
-    
-    # Return
-    y = df.get_values().T[:-2].T
-    x = df.get_values().T[-2:].T
+            df.set_value(i, 'type2', type_string_2_int[df['type2'][i]])    
+    return df
+
+def mergeMultipleTypes(df):
+    """
+        Reshape the dataframe to accept multi-type
+
+        Arg:    df  - The pokemen data frame which has two type attributes
+        Ret:    The merged data frame object
+    """
+    # 
+    df = pd.melt(df, id_vars=['cp', 'hp'], var_name='type')
+    df = df.dropna()
+    df = df.reset_index()
+    df = df.drop(['index', 'type'], axis=1)
+    return df
+
+def splitData(df, shuffle=True, split_rate=0.005):
+    """
+        Split the data into training and testing partition
+        It will also shuffle the data if the flag is True
+
+        Arg:    df          - The data frame object which will be cropped
+                shuffle     - The flag that determine shuffling or not
+                split_rate  - The partition rate of testing data
+    """
+    df = generateData(df, 10)
+    if shuffle == True:   
+        df = shuffleDataFrame(df)
+    y = df.get_values().T[2:].T
+    x = df.get_values().T[:2].T
     x = scaler.fit_transform(x)
     return train_test_split(x, y, test_size=0.005)
 
-def generateData(x, y, times=1):
-    """
-    x = x.tolist()
-    y = y.tolist()
-    result_x = list(x)
-    result_y = list(y)
-    if len(result_x) != len(result_y) or times<=0:
-        print('generate data error!')
-        exit()
-    for i in range(times):
-        for j in range(len(x)):
-            random_seed = 1 + (random.random() - 1) / 10
-            _list = []
-            for k in range(len(result_x[j])):
-                _list.append(result_x[j][k] * random_seed)
-            result_x.append(_list)
-            result_y.append(y[j])
-    print(np.shape(x), np.shape(result_x))
-    print(np.shape(y), np.shape(result_y))
-    return result_x, result_y
-    """
-    pass
-
 def generateData(df, times=1):
     """
-    _new = pd.DataFrame([[12, float('NaN'), 1, 1]], columns=df.columns)
-    df = df.append(_new)
-    
+        Generate data randomly
 
+        Arg:    df      - The original data frame object
+                times   - The times of number you want to generate
     """
     origin_len = len(df)
     columns_list = df.columns
-    print(origin_len)
-    print(df['type1'][150])
+    print(columns_list)
     for i in range(times):
         for j in range(origin_len):
             random_seed = 1 + (random.random() - 1) / 10
             _new_row = []
-            _new_row.append(df['type1'][j])
-            _new_row.append(df['type2'][j])
             _new_row.append(df['cp'][j] * random_seed)
             _new_row.append(df['hp'][j] * random_seed)
+            if len(columns_list) == 4:
+                _new_row.append(df['type1'][j])
+                _new_row.append(df['type2'][j])
+            if len(columns_list) == 3:
+                _new_row.append(df['value'][j])
             df = df.append(pd.DataFrame([_new_row], columns=columns_list))
         df = df.reset_index().drop(['index'], axis=1)
     return df
@@ -108,6 +113,7 @@ def generateData(df, times=1):
 def shuffleDataFrame(data_frame):
     """
         Shuffle the data frame
+
         Arg:    data_frame  - The data frame object you want to shuffle
         Ret:    The shuffle data frame result
     """
@@ -119,15 +125,37 @@ def shuffleDataFrame(data_frame):
         result_table = result_table.append(sample_row)
     return result_table
 
-def errorSum(tag_arr, predict_arr):
+def matchRate(tag_arr, predict_arr):
+    """
+        Get the match rate for the predict result
+        It only accepts two format:
+        1. [[1, 0], [3, NaN], ...]
+        2. [1, 0, 3, NaN, ...]
+
+        Arg:    tag_arr     - The tag array, it can be 1D or 2D
+                predict_arr - The predict array
+        Ret:    The matching rate
+    """
     _count = 0
-    for i in range(len(tag_arr)):
-        if predict_arr[i] == tag_arr[i][0] or \
-            predict_arr[i] == tag_arr[i][1]:
-            _count += 1
+    if len(np.shape(tag_arr)) == 2:
+        for i in range(len(tag_arr)):
+            if predict_arr[i] == tag_arr[i][0] or \
+                predict_arr[i] == tag_arr[i][1]:
+                _count += 1
+    else:
+        for i in range(len(tag_arr)):
+            if predict_arr[i] == tag_arr[i]:
+                _count += 1
     return _count / len(tag_arr)
 
 def oneHotEncode(arr):
+    """
+        Transfer the array into one-hot format
+        This function allow one row containing multiple classes
+
+        Arg:    The original tag array
+        Ret:    The encoded array
+    """
     res = np.zeros([len(arr), np.nanmax(arr) + 1])
     for i in range(len(res)):
         res[i][arr[i][0]] = 1
@@ -136,9 +164,10 @@ def oneHotEncode(arr):
     return res
 
 def oneHotDecode(arr):
-    return np.argmax(arr, axis=1)
+    """
+        Reverse the predict result into original format
 
-"""
-a = [[ 0.00138773, 0.0105505, 0.06052515, 0.01134599]]
-print(oneHotDecode(a))
-"""
+        Arg:    The array of predict result
+        Ret:    The array with original format
+    """
+    return np.argmax(arr, axis=1)

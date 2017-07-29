@@ -18,17 +18,6 @@ class Net(object):
         self.encode_model = Model(inputs=input_layer, outputs=decode_layer)
 
         # Define DNN structure
-        """
-        self.network = Dense(units=256, activation='elu')(self.encode_layer)
-        self.network = Dropout(0.5)(self.network)
-        self.network = Dense(units=128, activation='elu')(self.network)
-        self.network = Dropout(0.5)(self.network)
-        self.network = Dense(units=64, activation='elu')(self.network)
-        self.output = Dense(units=17, activation='sigmoid')(self.network)
-        self.dnn_model = Model(inputs=input_layer, outputs=self.output)
-        """
-
-        """
         self.network = Dense(units=128, activation='elu')(self.encode_layer)
         self.network = Dropout(0.5)(self.network)
         self.network = Dense(units=128, activation='elu')(self.network)
@@ -38,18 +27,9 @@ class Net(object):
         self.network = Dense(units=64, activation='elu')(self.network)
         self.network = Dense(units=64, activation='elu')(self.network)
         self.output = Dense(units=17, activation='sigmoid')(self.network)
-        self.dnn_model = Model(inputs=input_layer, outputs=self.output)
-        """
+        self.dnn_model = Model(inputs=input_layer, outputs=self.output)        
 
-        
-        self.network = Dense(units=1024, activation='elu')(self.encode_layer)
-        self.network = Dropout(0.5)(self.network)
-        self.output = Dense(units=17, activation='sigmoid')(self.network)
-        self.dnn_model = Model(inputs=input_layer, outputs=self.output)
-        
-        
-
-    def fit(self, x, y, epoch=2000, batch_size=32):
+    def fit(self, x, y, epoch=2, batch_size=32):
         # Train auto-encoder first
         self.encode_model.compile(
             loss='mse',
@@ -61,14 +41,11 @@ class Net(object):
         for i in range(len(self.encode_model.layers)):
             self.dnn_model.layers[i].trainable = False
         self.dnn_model.compile(
-            loss='mse',    # categorical_crossentropy
+            loss='mse',
             optimizer='adam',
             metrics=['accuracy']
         )
         self.dnn_model.fit(x, y, epochs=epoch, batch_size=batch_size)
-        #self.dnn_model.fit(x, y, epochs=10000, batch_size=256)
 
     def predict(self, x):
         return self.dnn_model.predict(x)
-
-#net = Net()
