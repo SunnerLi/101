@@ -17,3 +17,8 @@ result:  Grass
 Enter CP and HP in order: d
 
 ```
+
+Show the data distribution:
+```
+python distribution.py
+```

@@ -190,3 +190,15 @@ def newDataPreprocess(arr):
     """
     global scaler
     return scaler.transform(arr)
+
+def reverseMapping(df):
+    """
+        Reverse the numeric representation to string for the data frame object
+
+        Arg:    df  - The data frame object
+        Ret:    The data frame with original format
+    """
+    # Change categorical data to numeric index
+    for i in range(len(df)):
+        df.set_value(i, 'value', type_int_2_string[df['value'][i]])
+    return df
