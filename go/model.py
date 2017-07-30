@@ -1,5 +1,6 @@
 from keras.layers import Dense, Input, Dropout
-from keras.models import Model
+from keras.models import Model, load_model
+from keras import backend as K
 from keras import metrics
 import numpy as np
 
@@ -29,7 +30,7 @@ class Net(object):
         self.output = Dense(units=17, activation='sigmoid')(self.network)
         self.dnn_model = Model(inputs=input_layer, outputs=self.output)        
 
-    def fit(self, x, y, epoch=2, batch_size=32):
+    def fit(self, x, y, epoch=2000, batch_size=32):
         # Train auto-encoder first
         self.encode_model.compile(
             loss='mse',
@@ -47,5 +48,14 @@ class Net(object):
         )
         self.dnn_model.fit(x, y, epochs=epoch, batch_size=batch_size)
 
+    def save(self, model_name='model.h5'):
+        self.dnn_model.save(model_name)
+
+    def load(self, model_name='model.h5'):
+        self.dnn_model = load_model(model_name)
+
     def predict(self, x):
         return self.dnn_model.predict(x)
+
+    def close(self):
+        K.clear_session()

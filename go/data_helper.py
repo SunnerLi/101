@@ -94,7 +94,6 @@ def generateData(df, times=1):
     """
     origin_len = len(df)
     columns_list = df.columns
-    print(columns_list)
     for i in range(times):
         for j in range(origin_len):
             random_seed = 1 + (random.random() - 1) / 10
@@ -171,3 +170,23 @@ def oneHotDecode(arr):
         Ret:    The array with original format
     """
     return np.argmax(arr, axis=1)
+
+def toTypeName(_code):
+    """
+        Transfer the numeric type representation to name string
+
+        Arg:    _code   - The numeric type
+        Ret:    The corresponding name string
+    """
+    return type_int_2_string[_code]
+
+def newDataPreprocess(arr):
+    """
+        Scale the input array before prediction
+        This function will be adoptted for unknown new data
+
+        Arg:    arr - The 2D array about cp and hp
+        Ret:    The scaling result array
+    """
+    global scaler
+    return scaler.transform(arr)
